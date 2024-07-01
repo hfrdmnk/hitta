@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "axios": "^1.7.2",
+    "cheerio": "^1.0.0-rc.12",
+    "readline": "^1.3.0"
+  },
+  "name": "hitta",
+  "version": "1.0.0",
+  "description": "Finds all instances of a CSS class on a website when given a URL",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
