@@ -1,6 +1,7 @@
-const readline = require('readline');
-const axios = require('axios');
-const cheerio = require('cheerio');
+import readline from 'readline';
+import axios from 'axios';
+import cheerio from 'cheerio';
+import chalk from 'chalk';
 
 const rl = readline.createInterface({
 	input: process.stdin,
@@ -9,6 +10,8 @@ const rl = readline.createInterface({
 
 const visitedUrls = new Set();
 const pagesToVisit = [];
+const pagesWithClass = [];
+const pagesWithoutClass = [];
 
 async function crawlPage(url, className) {
 	if (visitedUrls.has(url)) {
@@ -22,7 +25,9 @@ async function crawlPage(url, className) {
 		const $ = cheerio.load(response.data);
 
 		if ($(`.${className}`).length > 0) {
-			console.log(`Page with class "${className}" found: ${url}`);
+			pagesWithClass.push(url);
+		} else {
+			pagesWithoutClass.push(url);
 		}
 
 		const links = $('a')
@@ -30,7 +35,10 @@ async function crawlPage(url, className) {
 			.get();
 
 		links.forEach((link) => {
-			const absoluteUrl = new URL(link, url).href;
+			let absoluteUrl = link;
+			if (!link.startsWith('http://') && !link.startsWith('https://')) {
+				absoluteUrl = new URL(link, url).href;
+			}
 			if (!visitedUrls.has(absoluteUrl) && absoluteUrl.startsWith(url)) {
 				pagesToVisit.push(absoluteUrl);
 			}
@@ -49,15 +57,38 @@ async function crawlWebsite(baseUrl, className) {
 	}
 }
 
+function displayResults() {
+	console.log(chalk.green.bold('\nPages with the specified class:'));
+	pagesWithClass.forEach((page) => {
+		console.log(chalk.green(`✅ ${page}`));
+	});
+
+	console.log(chalk.red.bold('\nPages without the specified class:'));
+	pagesWithoutClass.forEach((page) => {
+		console.log(chalk.red(`❌ ${page}`));
+	});
+}
+
 rl.question('Enter the website URL: ', (baseUrl) => {
+	if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+		baseUrl = `https://${baseUrl}`;
+	}
+
 	rl.question('Enter the CSS class to search for: ', (className) => {
+		console.log(chalk.blue(`\nCrawling website: ${baseUrl}`));
+		console.log(chalk.blue(`Searching for class: ${className}`));
+
 		crawlWebsite(baseUrl, className)
 			.then(() => {
-				console.log('Website crawling completed.');
+				console.log(chalk.green('\nWebsite crawling completed.'));
+				displayResults();
 				rl.close();
 			})
 			.catch((error) => {
-				console.error('An error occurred during website crawling:', error);
+				console.error(
+					chalk.red('An error occurred during website crawling:'),
+					error
+				);
 				rl.close();
 			});
 	});
