@@ -84,28 +84,45 @@ function displayResults(className) {
 	}
 }
 
-rl.question('Enter the website URL: ', (baseUrl) => {
-	if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-		baseUrl = `https://${baseUrl}`;
+function validateUrl(url) {
+	if (!url.startsWith('http://') && !url.startsWith('https://')) {
+		return `https://${url}`;
 	}
+	return url;
+}
 
-	rl.question('Enter the CSS class to search for: ', (className) => {
-		console.log(chalk.blue(`\nCrawling website: ${baseUrl}`));
-		console.log(chalk.blue(`Searching for class: ${className}`));
-		console.log('');
+function startCrawling(baseUrl, className) {
+	console.log(chalk.blue(`\nCrawling website: ${baseUrl}`));
+	console.log(chalk.blue(`Searching for class: ${className}`));
+	console.log('');
 
-		crawlWebsite(baseUrl, className)
-			.then(() => {
-				console.log(chalk.green('\n\nWebsite crawling completed.'));
-				displayResults(className);
-				rl.close();
-			})
-			.catch((error) => {
-				console.error(
-					chalk.red('\nAn error occurred during website crawling:'),
-					error
-				);
-				rl.close();
-			});
+	crawlWebsite(baseUrl, className)
+		.then(() => {
+			console.log(chalk.green('\n\nWebsite crawling completed.'));
+			displayResults(className);
+			rl.close();
+		})
+		.catch((error) => {
+			console.error(
+				chalk.red('\nAn error occurred during website crawling:'),
+				error
+			);
+			rl.close();
+		});
+}
+
+const [, , ...args] = process.argv;
+
+if (args.length === 2) {
+	const [baseUrl, className] = args;
+	const validatedUrl = validateUrl(baseUrl);
+	startCrawling(validatedUrl, className);
+} else {
+	rl.question('Enter the website URL: ', (baseUrl) => {
+		const validatedUrl = validateUrl(baseUrl);
+
+		rl.question('Enter the CSS class to search for: ', (className) => {
+			startCrawling(validatedUrl, className);
+		});
 	});
-});
+}
