@@ -9,7 +9,8 @@
   "description": "Finds all instances of a CSS class on a website when given a URL",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "script": "node index.js"
   },
   "author": "",
   "license": "ISC"
