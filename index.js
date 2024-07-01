@@ -67,7 +67,7 @@ function displayResults(className) {
 	if (pagesWithClass.length > 0) {
 		console.log(
 			chalk.green.bold(
-				`\n\n${pagesWithClass.length} pages have the ${className} class:`
+				`\n${pagesWithClass.length} pages have the ${className} class:`
 			)
 		);
 		pagesWithClass.forEach((page) => {
