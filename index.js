@@ -1,6 +1,6 @@
 import readline from 'readline';
 import axios from 'axios';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 import chalk from 'chalk';
 
 const rl = readline.createInterface({
@@ -54,19 +54,34 @@ async function crawlWebsite(baseUrl, className) {
 	while (pagesToVisit.length > 0) {
 		const currentUrl = pagesToVisit.shift();
 		await crawlPage(currentUrl, className);
+		updateProgress();
 	}
 }
 
-function displayResults() {
-	console.log(chalk.green.bold('\nPages with the specified class:'));
-	pagesWithClass.forEach((page) => {
-		console.log(chalk.green(`✅ ${page}`));
-	});
+function updateProgress() {
+	readline.cursorTo(process.stdout, 0);
+	process.stdout.write(chalk.yellow(`Pages crawled: ${visitedUrls.size}`));
+}
 
-	console.log(chalk.red.bold('\nPages without the specified class:'));
-	pagesWithoutClass.forEach((page) => {
-		console.log(chalk.red(`❌ ${page}`));
-	});
+function displayResults(className) {
+	if (pagesWithClass.length > 0) {
+		console.log(
+			chalk.green.bold(
+				`\n\n${pagesWithClass.length} pages have the ${className} class:`
+			)
+		);
+		pagesWithClass.forEach((page) => {
+			console.log(chalk.green(`✅ ${page}`));
+		});
+	}
+
+	if (pagesWithoutClass.length > 0) {
+		console.log(
+			chalk.red.bold(
+				`\n❌ ${pagesWithoutClass.length} pages don't have the ${className} class.`
+			)
+		);
+	}
 }
 
 rl.question('Enter the website URL: ', (baseUrl) => {
@@ -77,16 +92,17 @@ rl.question('Enter the website URL: ', (baseUrl) => {
 	rl.question('Enter the CSS class to search for: ', (className) => {
 		console.log(chalk.blue(`\nCrawling website: ${baseUrl}`));
 		console.log(chalk.blue(`Searching for class: ${className}`));
+		console.log('');
 
 		crawlWebsite(baseUrl, className)
 			.then(() => {
-				console.log(chalk.green('\nWebsite crawling completed.'));
-				displayResults();
+				console.log(chalk.green('\n\nWebsite crawling completed.'));
+				displayResults(className);
 				rl.close();
 			})
 			.catch((error) => {
 				console.error(
-					chalk.red('An error occurred during website crawling:'),
+					chalk.red('\nAn error occurred during website crawling:'),
 					error
 				);
 				rl.close();
