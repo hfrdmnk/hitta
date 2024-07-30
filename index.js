@@ -1,7 +1,8 @@
-import readline from 'readline';
+import { input, select } from '@inquirer/prompts';
 import axios from 'axios';
-import * as cheerio from 'cheerio';
 import chalk from 'chalk';
+import * as cheerio from 'cheerio';
+import readline from 'readline';
 
 const rl = readline.createInterface({
 	input: process.stdin,
@@ -13,7 +14,7 @@ const pagesToVisit = [];
 const pagesWithClass = [];
 const pagesWithoutClass = [];
 
-async function crawlPage(url, className) {
+async function crawlPage(url, searchType, searchTerm) {
 	if (visitedUrls.has(url)) {
 		return;
 	}
@@ -24,7 +25,14 @@ async function crawlPage(url, className) {
 		const response = await axios.get(url);
 		const $ = cheerio.load(response.data);
 
-		if ($(`.${className}`).length > 0) {
+		let found = false;
+		if (searchType === 'Class') {
+			found = $(`.${searchTerm}`).length > 0;
+		} else if (searchType === 'String') {
+			found = $('body').text().includes(searchTerm);
+		}
+
+		if (found) {
 			pagesWithClass.push(url);
 		} else {
 			pagesWithoutClass.push(url);
@@ -48,12 +56,12 @@ async function crawlPage(url, className) {
 	}
 }
 
-async function crawlWebsite(baseUrl, className) {
+async function crawlWebsite(baseUrl, searchType, searchTerm) {
 	pagesToVisit.push(baseUrl);
 
 	while (pagesToVisit.length > 0) {
 		const currentUrl = pagesToVisit.shift();
-		await crawlPage(currentUrl, className);
+		await crawlPage(currentUrl, searchType, searchTerm);
 		updateProgress();
 	}
 }
@@ -63,11 +71,11 @@ function updateProgress() {
 	process.stdout.write(chalk.yellow(`Pages crawled: ${visitedUrls.size}`));
 }
 
-function displayResults(className) {
+function displayResults(searchTerm) {
 	if (pagesWithClass.length > 0) {
 		console.log(
 			chalk.green.bold(
-				`\n${pagesWithClass.length} pages have the ${className} class:`
+				`\n${pagesWithClass.length} pages contain the term "${searchTerm}":`
 			)
 		);
 		pagesWithClass.forEach((page) => {
@@ -78,7 +86,7 @@ function displayResults(className) {
 	if (pagesWithoutClass.length > 0) {
 		console.log(
 			chalk.red.bold(
-				`\n❌ ${pagesWithoutClass.length} pages don't have the ${className} class.`
+				`\n❌ ${pagesWithoutClass.length} pages don't contain the term "${searchTerm}".`
 			)
 		);
 	}
@@ -91,15 +99,17 @@ function validateUrl(url) {
 	return url;
 }
 
-function startCrawling(baseUrl, className) {
+function startCrawling(baseUrl, searchType, searchTerm) {
 	console.log(chalk.blue(`\nCrawling website: ${baseUrl}`));
-	console.log(chalk.blue(`Searching for class: ${className}`));
+	console.log(
+		chalk.blue(`Searching for ${searchType.toLowerCase()}: ${searchTerm}`)
+	);
 	console.log('');
 
-	crawlWebsite(baseUrl, className)
+	crawlWebsite(baseUrl, searchType, searchTerm)
 		.then(() => {
 			console.log(chalk.green('\n\nWebsite crawling completed.'));
-			displayResults(className);
+			displayResults(searchTerm);
 			rl.close();
 		})
 		.catch((error) => {
@@ -111,18 +121,31 @@ function startCrawling(baseUrl, className) {
 		});
 }
 
-const [, , ...args] = process.argv;
-
-if (args.length === 2) {
-	const [baseUrl, className] = args;
-	const validatedUrl = validateUrl(baseUrl);
-	startCrawling(validatedUrl, className);
-} else {
-	rl.question('Enter the website URL: ', (baseUrl) => {
-		const validatedUrl = validateUrl(baseUrl);
-
-		rl.question('Enter the CSS class to search for: ', (className) => {
-			startCrawling(validatedUrl, className);
-		});
+const promptUser = async () => {
+	const searchType = await select({
+		message: 'What do you want to search for?',
+		choices: [
+			{ name: 'Class', value: 'Class' },
+			{ name: 'String', value: 'String' },
+		],
 	});
-}
+
+	const baseUrl = await input({
+		message: 'Enter the website URL:',
+		validate: (input) => (input ? true : 'URL cannot be empty'),
+	});
+
+	const searchTerm = await input({
+		message: `Enter the ${searchType.toLowerCase()} to search for:`,
+		validate: (input) => (input ? true : `${searchType} cannot be empty`),
+	});
+
+	return { searchType, baseUrl: validateUrl(baseUrl), searchTerm };
+};
+
+const main = async () => {
+	const { searchType, baseUrl, searchTerm } = await promptUser();
+	startCrawling(baseUrl, searchType, searchTerm);
+};
+
+main();
