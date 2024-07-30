@@ -2,12 +2,6 @@ import { input, select } from '@inquirer/prompts';
 import axios from 'axios';
 import chalk from 'chalk';
 import * as cheerio from 'cheerio';
-import readline from 'readline';
-
-const rl = readline.createInterface({
-	input: process.stdin,
-	output: process.stdout,
-});
 
 const visitedUrls = new Set();
 const pagesToVisit = [];
@@ -67,15 +61,16 @@ async function crawlWebsite(baseUrl, searchType, searchTerm) {
 }
 
 function updateProgress() {
-	readline.cursorTo(process.stdout, 0);
-	process.stdout.write(chalk.yellow(`Pages crawled: ${visitedUrls.size}`));
+	process.stdout.write(chalk.yellow(`Pages crawled: ${visitedUrls.size}\r`));
 }
 
-function displayResults(searchTerm) {
+function displayResults(searchTerm, searchType) {
 	if (pagesWithClass.length > 0) {
 		console.log(
 			chalk.green.bold(
-				`\n${pagesWithClass.length} pages contain the term "${searchTerm}":`
+				`\n${pagesWithClass.length} pages contain the ${
+					searchType === 'Class' ? 'class' : 'string'
+				} "${searchTerm}":`
 			)
 		);
 		pagesWithClass.forEach((page) => {
@@ -109,15 +104,13 @@ function startCrawling(baseUrl, searchType, searchTerm) {
 	crawlWebsite(baseUrl, searchType, searchTerm)
 		.then(() => {
 			console.log(chalk.green('\n\nWebsite crawling completed.'));
-			displayResults(searchTerm);
-			rl.close();
+			displayResults(searchTerm, searchType);
 		})
 		.catch((error) => {
 			console.error(
 				chalk.red('\nAn error occurred during website crawling:'),
 				error
 			);
-			rl.close();
 		});
 }
 
